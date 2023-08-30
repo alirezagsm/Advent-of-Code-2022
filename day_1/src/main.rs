@@ -17,8 +17,10 @@ fn main() {
             }
         }
     }
-    collection.push(_vec.clone());
-
+    if _vec.len() > 0 {
+        collection.push(_vec.clone());
+    }
+    
     let mut carb_vec = collection
         .iter()
         .map(|x| x.iter().sum::<i32>())
