@@ -17,12 +17,18 @@ fn main() {
             }
         }
     }
-    let mut max_carbs = 0;
-    for item in collection {
-        let carbs = item.iter().sum();
-        if carbs > max_carbs {
-            max_carbs = carbs;
-        }
-    }
-    println!("Max carbs: {}", max_carbs)
+    collection.push(_vec.clone());
+
+    let mut carb_vec = collection
+        .iter()
+        .map(|x| x.iter().sum::<i32>())
+        .collect::<Vec<i32>>();
+
+    carb_vec.sort();
+    println!("{carb_vec:?}");
+    println!("Max carb: {}", carb_vec.last().unwrap());
+    print!(
+        "The sum of the three largest numbers is: {}\n",
+        carb_vec.iter().rev().take(3).sum::<i32>()
+    );
 }
