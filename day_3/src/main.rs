@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 fn get_value(c: char) -> i32 {
     let mut num = 0;
     if c.is_ascii_lowercase() {
