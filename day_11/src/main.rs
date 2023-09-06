@@ -4,11 +4,15 @@
 // fn main() {
 //     let mut myvec = Mutex::new(vec![1, 2, 3, 4, 5]);
 
+use core::panic;
+use std::collections::{BTreeMap, BTreeSet};
+
 //     for v in myvec.get_mut() {
 //         dbg!(v);
 //         // myvec.get_mut()[0]= 10;
 //     }
 // }
+use num::bigint::BigInt;
 
 #[derive(Debug)]
 struct Monkey {
@@ -24,7 +28,7 @@ struct Monkey {
 // implement print for Monkey
 impl std::fmt::Display for Monkey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Monkey {{ items: {:?}}}", self.items)
+        write!(f, "Monkey {{ items: {:?}}}", self.items.len())
     }
 }
 
@@ -88,31 +92,180 @@ fn main() {
     while round_count < 20 {
         for m in 0..monkeys.len() {
             for i in 0..monkeys[m].items.len() {
+                if monkeys[m].items[i] == 0 {
+                    continue;
+                }
                 monkeys[m].count += 1;
                 let destination;
-                let item: &mut i32 = &mut 0;
-                {
-                    let monkey = monkeys.get_mut(m).unwrap();
-                    let item = monkey.items.get_mut(i).unwrap();
-                    if monkey.item_operations == "+" {
-                        *item += monkey.item_value;
-                    } else if monkey.item_operations == "*" {
-                        *item *= monkey.item_value;
-                    }
-                    *item /= 3;
+                let mut item: i32;
 
-                    if *item % monkey.test_value == 0 {
-                        destination = monkey.true_destination;
+                let monkey = monkeys.get_mut(m).unwrap();
+                item = monkey.items[i];
+                if monkey.item_operations == "+" {
+                    if monkey.item_value == 0 {
+                        item += item;
                     } else {
-                        destination = monkey.false_destination;
+                        item += monkey.item_value;
                     }
-                    monkey.items.remove(i);
+                } else if monkey.item_operations == "*" {
+                    if monkey.item_value == 0 {
+                        item *= item;
+                    } else {
+                        item *= monkey.item_value;
+                    }
                 }
-                monkeys.get_mut(destination).unwrap().items.push(*item);
+                item /= 3;
+                if item % monkey.test_value == 0 {
+                    destination = monkey.true_destination;
+                } else {
+                    destination = monkey.false_destination;
+                }
+                monkey.items[i] = 0;
+                monkeys.get_mut(destination).unwrap().items.push(item);
             }
         }
         round_count += 1;
+        dbg!(round_count);
     }
 
-    dbg!(monkeys);
+    for monkey in monkeys.iter() {
+        println!("{}", monkey.count)
+    }
+
+    let mut active_monkeys = monkeys.iter().map(|m| m.count).collect::<Vec<_>>();
+    active_monkeys.sort();
+    dbg!(&active_monkeys);
+    let result = active_monkeys.iter().rev().take(2).product::<u32>();
+    println!("Part1: {result}");
+
+    //Part 2
+    struct Monkey_Big {
+        items: BTreeSet<String>,
+        item_operations: String,
+        item_value: i32,
+        test_value: i32,
+        true_destination: usize,
+        false_destination: usize,
+        count: u32,
+    }
+    let mut monkeys = Vec::<Monkey_Big>::new();
+    // initialize monkey vector
+    let mut _items: BTreeSet<String> = BTreeSet::new();
+    let mut _operation: &str;
+    let mut _item_operation: &str = "";
+    let mut _item_value: i32 = 0;
+    let mut _test_value: i32 = 0;
+    let mut _true_destination: usize = 0;
+    let mut _false_destination: usize = 0;
+    for line in input.lines() {
+        if line.contains("Starting") {
+            _operation = line.split("items: ").last().unwrap();
+            _items = _operation
+                .split(", ")
+                .map(|s| s.parse::<String>().unwrap())
+                .collect();
+        } else if line.contains("Operation") {
+            _operation = line.split("new = ").last().unwrap();
+            for word in _operation.split_whitespace() {
+                if word.contains("+") {
+                    _item_operation = "+";
+                } else if word.contains("*") {
+                    _item_operation = "*";
+                } else if word.chars().any(|c| c.is_ascii_digit()) {
+                    _item_value = word.parse::<i32>().unwrap();
+                } else {
+                    _item_value = 0;
+                }
+            }
+        } else if line.contains("Test") {
+            _operation = line.split("divisible by ").last().unwrap();
+            _test_value = _operation.parse::<i32>().unwrap();
+        } else if line.contains("true") {
+            _operation = line.split("throw to monkey ").last().unwrap();
+            _true_destination = _operation.parse::<usize>().unwrap();
+        } else if line.contains("false") {
+            _operation = line.split("throw to monkey ").last().unwrap();
+            _false_destination = _operation.parse::<usize>().unwrap();
+        }
+        if line.is_empty() {
+            monkeys.push(Monkey_Big {
+                items: _items.clone(),
+                item_operations: _item_operation.to_string(),
+                item_value: _item_value,
+                test_value: _test_value,
+                true_destination: _true_destination,
+                false_destination: _false_destination,
+                count: 0,
+            });
+        }
+    }
+
+    // add 0 to items of all monkeys
+    for monkey in monkeys.iter_mut() {
+        monkey.items.insert("0".to_string());
+    }
+
+    let mut round_count = 0;
+    while round_count < 10000 {
+        for m in 0..monkeys.len() {
+            let tree_len = monkeys[m].items.len();
+            let item_string_vec = monkeys[m]
+                .items
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>();
+            for i in 0..item_string_vec.len() {
+                let item = item_string_vec[i].clone();
+                let item_monkey = monkeys[m].items.get(&item).unwrap().clone();
+                if item_monkey == "0" {
+                    continue;
+                }
+                monkeys[m].count += 1;
+                let destination;
+                let monkey = monkeys.get_mut(m).unwrap();
+                let mut item_bigint = item_monkey.parse::<BigInt>().unwrap();
+                if monkey.item_operations == "+" {
+                    if monkey.item_value == 0 {
+                        item_bigint += item_bigint.clone();
+                    } else {
+                        item_bigint += monkey.item_value;
+                    }
+                } else if monkey.item_operations == "*" {
+                    if monkey.item_value == 0 {
+                        item_bigint *= item_bigint.clone();
+                    } else {
+                        item_bigint *= monkey.item_value;
+                    }
+                }
+                item_bigint = item_bigint % 23 * 19 * 13 * 17;
+                if &item_bigint % monkey.test_value == BigInt::from(0) {
+                    destination = monkey.true_destination;
+                } else {
+                    destination = monkey.false_destination;
+                }
+
+                monkeys[m].items.remove(&item_monkey);
+                monkeys
+                    .get_mut(destination)
+                    .unwrap()
+                    .items
+                    .insert(item_bigint.to_string());
+            }
+        }
+        round_count += 1;
+        if round_count % 50 == 0 {
+            dbg!(round_count);
+        }
+    }
+    
+    for (i, monkey) in monkeys.iter().enumerate() {
+        for item in monkey.items.iter() {
+            println!("{} {}", i, item)
+        }
+    }
+    let mut active_monkeys = monkeys.iter().map(|m| m.count).collect::<Vec<_>>();
+    active_monkeys.sort();
+    dbg!(&active_monkeys);
+    let result = active_monkeys.iter().rev().take(2).product::<u32>();
+    println!("Part2: {result}");
 }
