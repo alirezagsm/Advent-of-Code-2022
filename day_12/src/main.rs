@@ -23,36 +23,42 @@ fn main() {
     let mut visited = vec![current];
 
     let mut candidates = get_candidates(current, &map, &visited);
-    let mut nodes: Vec<(usize, usize)> = vec![];
+    let mut nodes: Vec<(usize, usize)>;
+    let mut nodes_explored: Vec<Vec<(usize, usize)>>;
     let mut min_path = 999;
 
     loop {
         candidates = get_candidates(current, &map, &visited);
         if candidates.is_empty() {
-            current = nodes.pop().unwrap();
-            while visited.last().unwrap() != &current {
-                visited.pop();
+            match nodes.pop() {
+                Some(node) => {
+                    current = node;
+                    let mut history = current;
+                    while visited.last().unwrap() != &current {
+                        history = visited.pop().unwrap();
+                    }
+                    visited.pop();
+                    visited.push(history);
+                }
+                None => break,
             }
-            // show_map(&map, &visited);
         } else {
             // go back
             if candidates.len() > 1 {
                 nodes.push(current);
             }
             current = candidates.pop().unwrap();
-            // dbg!("went back to", current);
         };
 
         visited.push(current);
-        // show_map(&map, &visited);
+        show_map(&map, &visited);
         if current == end && visited.len() < min_path {
             min_path = visited.len();
-            show_map(&map, &visited);
             dbg!(&visited.len());
         }
     }
 
-    show_map(&map, &visited);
+    println!("Part 1: {}", min_path - extras)
 }
 
 fn show_map(map: &Vec<Vec<u32>>, visited: &Vec<(usize, usize)>) {
